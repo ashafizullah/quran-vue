@@ -1,0 +1,99 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --primary-color: #2e7d32;
+  --secondary-color: #81c784;
+  --light-color: #e8f5e9;
+  --dark-color: #1b5e20;
+  --accent-color: #4caf50;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--light-color);
+}
+
+.arabic-text {
+  font-family: "Traditional Arabic", "Scheherazade New", serif;
+  line-height: 2;
+}
+
+/* Override some Bootstrap styles */
+.card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border-color: var(--secondary-color);
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.btn-outline-primary {
+  border-width: 2px;
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.bg-dark {
+  background-color: var(--dark-color) !important;
+}
+
+.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.bg-secondary {
+  background-color: var(--secondary-color) !important;
+}
+
+.bg-info {
+  background-color: var(--accent-color) !important;
+}
+
+.search-container {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.search-container .form-control {
+  border-color: var(--secondary-color);
+  padding-left: 40px;
+}
+
+.search-container .form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.25rem rgba(46, 125, 50, 0.25);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--primary-color);
+}
+
+.bismillah {
+  color: var(--dark-color);
+}
+
+.navbar-dark .navbar-brand,
+.navbar-dark .nav-link {
+  color: white !important;
+}
+
+.navbar-dark .nav-link:hover {
+  color: var(--secondary-color) !important;
+}
