@@ -580,6 +580,13 @@ const removeBismillahIfNeeded = (text: string, surahNumber: number): string => {
   }
   return text;
 };
+
+const scrollToTop = () => {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+};
 </script>
 
 <template>
@@ -796,6 +803,9 @@ const removeBismillahIfNeeded = (text: string, surahNumber: number): string => {
         <button class="btn btn-success" @click="decreaseTextSize" title="Perkecil Text">
           <i class="bi bi-zoom-out"></i>
         </button>
+        <button class="btn btn-primary" @click="scrollToTop" title="Kembali ke Atas">
+          <i class="bi bi-arrow-up"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -875,6 +885,26 @@ const removeBismillahIfNeeded = (text: string, surahNumber: number): string => {
 .floating-controls .btn-secondary:hover {
   background-color: rgba(108, 117, 125, 0.9);
   border-color: rgba(108, 117, 125, 0.5);
+}
+
+.floating-controls .btn:first-child {
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+}
+
+.floating-controls .btn:last-child {
+  border-bottom-left-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.floating-controls .btn-primary {
+  background-color: rgba(13, 110, 253, 0.7);
+  border-color: rgba(13, 110, 253, 0.3);
+}
+
+.floating-controls .btn-primary:hover {
+  background-color: rgba(13, 110, 253, 0.9);
+  border-color: rgba(13, 110, 253, 0.5);
 }
 
 .floating-controls .btn:first-child {
