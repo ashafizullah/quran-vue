@@ -582,10 +582,15 @@ const removeBismillahIfNeeded = (text: string, surahNumber: number): string => {
 };
 
 const scrollToTop = () => {
-  window.scrollTo({
-    top: 0,
-    behavior: 'smooth'
-  });
+  // Fungsi untuk melakukan animasi scroll
+  const scrollStep = -window.scrollY / 15; // Membagi jarak dengan 15 langkah
+  const scrollInterval = setInterval(() => {
+    if (window.scrollY !== 0) {
+      window.scrollBy(0, scrollStep);
+    } else {
+      clearInterval(scrollInterval);
+    }
+  }, 15); // 15ms per langkah
 };
 </script>
 
