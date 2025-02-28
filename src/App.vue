@@ -16,6 +16,11 @@
             <li class="nav-item">
               <router-link class="nav-link" to="/">Beranda</router-link>
             </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/bookmarks">
+                <i class="bi bi-bookmarks me-1"></i>Bookmark
+              </router-link>
+            </li>
           </ul>
         </div>
       </div>

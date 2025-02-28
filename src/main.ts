@@ -1,15 +1,18 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap-icons/font/bootstrap-icons.css'
 import 'bootstrap'
 import './style.css'
 import App from './App.vue'
 import Home from './views/Home.vue'
 import SurahDetail from './views/SurahDetail.vue'
+import BookmarksView from './views/BookmarksView.vue'
 
 const routes = [
   { path: '/', component: Home },
-  { path: '/surah/:id', component: SurahDetail, props: true }
+  { path: '/surah/:id', component: SurahDetail, props: true },
+  { path: '/bookmarks', component: BookmarksView }
 ]
 
 const router = createRouter({
