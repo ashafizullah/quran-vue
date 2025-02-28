@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, computed, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { 
@@ -122,7 +122,7 @@ onMounted(() => {
   fetchSurah(route.params.id);
   
   // Add global navigation guard for this component
-  const unregisterRouterGuard = router.beforeEach((to, from) => {
+const unregisterRouterGuard = router.beforeEach((_, from) => {
     // If we're navigating away from this page, stop the audio
     if (from.name === undefined || from.path.includes('/surah/')) {
       stopAudio();
@@ -421,9 +421,9 @@ const getAyahStatus = (index: number) => {
 };
 
 // Register ayah ref
-const setAyahRef = (el: HTMLElement | null, ayahNumber: number) => {
+const setAyahRef = (el: any, ayahNumber: number) => {
   if (el) {
-    ayahRefs.value[ayahNumber] = el;
+    ayahRefs.value[ayahNumber] = el.$el || el; // Handle both component instances and DOM elements
   }
 };
 
@@ -605,7 +605,7 @@ const toggleAyahBookmark = (index: number) => {
         class="card mb-4" 
         v-for="(ayah, index) in surah.ayahs" 
         :key="ayah.number"
-        :ref="el => setAyahRef(el, ayah.numberInSurah)"
+        :ref="el => el && setAyahRef(el, ayah.numberInSurah)"
         :class="{ 'currently-playing': currentAyahIndex === index }"
       >
         <div class="card-body">
