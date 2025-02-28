@@ -8,11 +8,15 @@ import App from './App.vue'
 import Home from './views/Home.vue'
 import SurahDetail from './views/SurahDetail.vue'
 import BookmarksView from './views/BookmarksView.vue'
+import About from './views/About.vue'
+import Changelog from './views/Changelog.vue'
 
 const routes = [
   { path: '/', component: Home },
-  { path: '/surah/:id', component: SurahDetail, props: true },
-  { path: '/bookmarks', component: BookmarksView }
+  { path: '/surah/:id/:ayah?', component: SurahDetail, props: true },
+  { path: '/bookmarks', component: BookmarksView },
+  { path: '/about', component: About },
+  { path: '/changelog', component: Changelog }
 ]
 
 const router = createRouter({

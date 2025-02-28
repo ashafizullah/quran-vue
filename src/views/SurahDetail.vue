@@ -45,6 +45,12 @@ const selectedReciter = ref('ar.alafasy'); // Default reciter (Mishary Rashid Al
 const isSurahBookmarked = ref(false);
 const ayahBookmarks = ref<Record<number, boolean>>({});
 
+// Text size control
+const arabicTextSize = ref(4); // Default size (fs-4)
+const translationTextSize = ref(0); // Default size (normal)
+const MIN_TEXT_SIZE = 1;
+const MAX_TEXT_SIZE = 6;
+
 // Repeat functionality for both full surah and individual ayahs
 const repeatCount = ref(1); // Default: play once
 const currentRepeatIndex = ref(0);
@@ -116,13 +122,46 @@ const fetchSurah = async (id: string | string[]) => {
   }
 };
 
+const scrollToBookmarkedAyah = () => {
+  if (route.params.ayah && surah.value) {
+    const ayahNumber = parseInt(route.params.ayah as string);
+    
+    // Create a function to attempt scrolling with retries
+    const attemptScroll = (attemptsLeft = 5) => {
+      if (attemptsLeft <= 0) return; // Stop trying after several attempts
+      
+      const ayahElement = ayahRefs.value[ayahNumber];
+      if (ayahElement) {
+        // Element found, scroll to it
+        ayahElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+        
+        // Highlight the ayah
+        ayahElement.classList.add('highlight-ayah');
+        setTimeout(() => {
+          ayahElement.classList.remove('highlight-ayah');
+        }, 3000);
+      } else {
+        // Element not found yet, retry after delay
+        setTimeout(() => attemptScroll(attemptsLeft - 1), 300);
+      }
+    };
+    
+    // Start attempting to scroll after DOM has updated
+    nextTick(() => {
+      attemptScroll();
+    });
+  }
+};
+
 onMounted(() => {
   audioPlayer.value = new Audio();
   audioPlayer.value.addEventListener('ended', handleAudioEnded);
   fetchSurah(route.params.id);
   
-  // Add global navigation guard for this component
-const unregisterRouterGuard = router.beforeEach((_, from) => {
+  const unregisterRouterGuard = router.beforeEach((_, from) => {
     // If we're navigating away from this page, stop the audio
     if (from.name === undefined || from.path.includes('/surah/')) {
       stopAudio();
@@ -137,6 +176,24 @@ const unregisterRouterGuard = router.beforeEach((_, from) => {
   
   // Check bookmark status for the current surah
   checkBookmarkStatus();
+
+  const savedArabicSize = localStorage.getItem('quran-app-arabic-size');
+  const savedTranslationSize = localStorage.getItem('quran-app-translation-size');
+    
+  if (savedArabicSize) {
+    arabicTextSize.value = parseInt(savedArabicSize);
+  }
+    
+  if (savedTranslationSize) {
+    translationTextSize.value = parseInt(savedTranslationSize);
+  }
+});
+
+watch(() => loading.value, (isLoading) => {
+  if (!isLoading && surah.value && route.params.ayah) {
+    // Now data is loaded, attempt to scroll
+    scrollToBookmarkedAyah();
+  }
 });
 
 watch(() => route.params.id, (newId) => {
@@ -149,6 +206,14 @@ watch(() => route.params.id, (newId) => {
 watch(() => selectedReciter.value, () => {
   stopAudio();
   fetchSurah(route.params.id);
+});
+
+watch(arabicTextSize, (newSize) => {
+  localStorage.setItem('quran-app-arabic-size', newSize.toString());
+});
+
+watch(translationTextSize, (newSize) => {
+  localStorage.setItem('quran-app-translation-size', newSize.toString());
 });
 
 // Watch currentAyahIndex to scroll to the currently playing ayah
@@ -169,6 +234,29 @@ const beforeUnmount = () => {
 
 // Make sure Vue calls our beforeUnmount function
 onBeforeUnmount(beforeUnmount);
+
+const increaseTextSize = () => {
+    if (arabicTextSize.value < MAX_TEXT_SIZE) {
+      arabicTextSize.value++;
+    }
+    if (translationTextSize.value < MAX_TEXT_SIZE - 1) {
+      translationTextSize.value++;
+    }
+  };
+
+  const decreaseTextSize = () => {
+    if (arabicTextSize.value > MIN_TEXT_SIZE) {
+      arabicTextSize.value--;
+    }
+    if (translationTextSize.value > MIN_TEXT_SIZE - 1) {
+      translationTextSize.value--;
+    }
+  };
+
+  const resetTextSize = () => {
+    arabicTextSize.value = 4; // Reset to default (fs-4)
+    translationTextSize.value = 0; // Reset to default (normal)
+  };
 
 // Function to scroll to a specific ayah
 const scrollToAyah = (index: number) => {
@@ -423,7 +511,7 @@ const getAyahStatus = (index: number) => {
 // Register ayah ref
 const setAyahRef = (el: any, ayahNumber: number) => {
   if (el) {
-    ayahRefs.value[ayahNumber] = el.$el || el; // Handle both component instances and DOM elements
+    ayahRefs.value[ayahNumber] = el;
   }
 };
 
@@ -481,6 +569,16 @@ const toggleAyahBookmark = (index: number) => {
       ayahBookmarks.value[ayahNumber] = true;
     }
   }
+};
+
+const removeBismillahIfNeeded = (text: string, surahNumber: number): string => {
+  // Jika bukan surat Al-Fatihah (karena bismillah adalah bagian dari surat)
+  if (surahNumber !== 1) {
+    // Pola Bismillah dalam teks Arab
+    const bismillahPattern = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ/;
+    return text.replace(bismillahPattern, '').trim();
+  }
+  return text;
 };
 </script>
 
@@ -605,7 +703,7 @@ const toggleAyahBookmark = (index: number) => {
         class="card mb-4" 
         v-for="(ayah, index) in surah.ayahs" 
         :key="ayah.number"
-        :ref="el => el && setAyahRef(el, ayah.numberInSurah)"
+        :ref="el => setAyahRef(el, ayah.numberInSurah)"
         :class="{ 'currently-playing': currentAyahIndex === index }"
       >
         <div class="card-body">
@@ -673,12 +771,31 @@ const toggleAyahBookmark = (index: number) => {
             </div>
           </div>
           
-          <p class="arabic-text text-end fs-4 mb-3">{{ ayah.text }}</p>
-          
-          <p v-if="translation && translation.ayahs[index]" class="mb-0">
+          <p class="arabic-text text-end" :class="`fs-${arabicTextSize}`">
+            {{ 
+              ayah.numberInSurah === 1 && surah.number !== 1 ? 
+              removeBismillahIfNeeded(ayah.text, surah.number) : 
+              ayah.text 
+            }}
+          </p>
+
+          <p v-if="translation && translation.ayahs[index]" class="mb-0" :class="translationTextSize > 0 ? `fs-${translationTextSize}` : ''">
             {{ translation.ayahs[index].text }}
           </p>
         </div>
+      </div>
+    </div>
+    <div class="floating-controls">
+      <div class="btn-group-vertical shadow">
+        <button class="btn btn-success" @click="increaseTextSize" title="Perbesar Text">
+          <i class="bi bi-zoom-in"></i>
+        </button>
+        <button class="btn btn-secondary" @click="resetTextSize" title="Ukuran Normal">
+          <i class="bi bi-arrow-clockwise"></i>
+        </button>
+        <button class="btn btn-success" @click="decreaseTextSize" title="Perkecil Text">
+          <i class="bi bi-zoom-out"></i>
+        </button>
       </div>
     </div>
   </div>
@@ -686,7 +803,7 @@ const toggleAyahBookmark = (index: number) => {
 
 <style scoped>
 .arabic-text {
-  font-family: "Traditional Arabic", "Scheherazade New", serif;
+  font-family: "LPMQ Isep Misbah", "Traditional Arabic", "Scheherazade New", serif;
   line-height: 2;
 }
 
@@ -717,5 +834,66 @@ const toggleAyahBookmark = (index: number) => {
 /* Smooth transition for better UX */
 .card {
   transition: all 0.3s ease;
+}
+
+.floating-controls {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.floating-controls .btn-group-vertical {
+  background-color: rgba(255, 255, 255, 0.6); /* Latar belakang semi-transparan */
+  border-radius: 0.25rem;
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+  opacity: 0.7; /* Opacity default */
+}
+
+.floating-controls .btn-group-vertical:hover {
+  opacity: 1; /* Opacity penuh saat hover */
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.floating-controls .btn {
+  border-radius: 0;
+  background-color: rgba(40, 167, 69, 0.7); /* Warna tombol semi-transparan */
+  border-color: rgba(40, 167, 69, 0.3);
+  transition: all 0.2s ease;
+}
+
+.floating-controls .btn:hover {
+  background-color: rgba(40, 167, 69, 0.9);
+  border-color: rgba(40, 167, 69, 0.5);
+}
+
+.floating-controls .btn-secondary {
+  background-color: rgba(108, 117, 125, 0.7);
+  border-color: rgba(108, 117, 125, 0.3);
+}
+
+.floating-controls .btn-secondary:hover {
+  background-color: rgba(108, 117, 125, 0.9);
+  border-color: rgba(108, 117, 125, 0.5);
+}
+
+.floating-controls .btn:first-child {
+  border-top-left-radius: 0.25rem;
+  border-top-right-radius: 0.25rem;
+}
+
+.floating-controls .btn:last-child {
+  border-bottom-left-radius: 0.25rem;
+  border-bottom-right-radius: 0.25rem;
+}
+
+.highlight-ayah {
+  animation: highlight-pulse 3s ease;
+}
+
+@keyframes highlight-pulse {
+  0% { background-color: rgba(255, 193, 7, 0.1); }
+  50% { background-color: rgba(255, 193, 7, 0.3); }
+  100% { background-color: rgba(255, 193, 7, 0); }
 }
 </style>

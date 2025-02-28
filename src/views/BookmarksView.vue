@@ -119,7 +119,7 @@ function formatDate(timestamp: number): string {
                 <div class="d-flex w-100 justify-content-between">
                   <div class="flex-grow-1">
                     <h5 class="mb-1">
-                      <router-link :to="`/surah/${bookmark.surahNumber}`" class="text-decoration-none">
+                      <router-link :to="`/surah/${bookmark.surahNumber}/${bookmark.ayahNumber}`" class="text-decoration-none">
                         {{ bookmark.surahName }} - Ayat {{ bookmark.ayahNumber }}
                       </router-link>
                     </h5>

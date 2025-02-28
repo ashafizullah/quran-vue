@@ -21,6 +21,16 @@
                 <i class="bi bi-bookmarks me-1"></i>Bookmark
               </router-link>
             </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/about">
+                <i class="bi bi-info-circle me-1"></i>Tentang
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/changelog">
+                <i class="bi bi-list-check me-1"></i>Changelog
+              </router-link>
+            </li>
           </ul>
         </div>
       </div>
