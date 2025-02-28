@@ -549,14 +549,14 @@ const toggleAyahBookmark = (index: number) => {
             <!-- Auto-Play and Auto-Scroll Options -->
             <div class="d-flex gap-4 mb-3">
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="autoPlaySwitch" v-model="autoPlay">
+                <input class="form-check-input" type="checkbox" id="autoPlaySwitch" :checked="autoPlay" @change="toggleAutoPlay">
                 <label class="form-check-label" for="autoPlaySwitch">
                   Auto-Play (otomatis putar ayat selanjutnya)
                 </label>
               </div>
               
               <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="autoScrollSwitch" v-model="autoScroll">
+                <input class="form-check-input" type="checkbox" id="autoScrollSwitch" :checked="autoScroll" @change="toggleAutoScroll">
                 <label class="form-check-label" for="autoScrollSwitch">
                   Auto-Scroll (otomatis gulir ke ayat yang diputar)
                 </label>
