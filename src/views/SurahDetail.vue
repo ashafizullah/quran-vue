@@ -230,7 +230,7 @@ watch(currentAyahIndex, async (newIndex) => {
 watch(() => surah.value, (newSurah) => {
   if (newSurah) {
     // Update title
-    document.title = `Surah ${newSurah.englishName} - Al-Quran`;
+    document.title = `Surah ${getIndonesianName(newSurah.englishName)} - Al-Quran`;
     
     // Update description
     let metaDescription = document.querySelector('meta[name="description"]');
