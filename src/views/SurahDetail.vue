@@ -10,7 +10,10 @@ import {
   removeAyahBookmark,
   isAyahBookmarked as checkAyahBookmark
 } from '../utils/bookmarkStore';
-import { surahNamesIndonesian } from '../utils/surahTranslations';
+import { 
+  surahNamesIndonesian, 
+  surahMeaningsIndonesian 
+} from '../utils/surahTranslations';
 
 const route = useRoute();
 const router = useRouter();
@@ -223,6 +226,77 @@ watch(currentAyahIndex, async (newIndex) => {
     scrollToAyah(newIndex);
   }
 });
+
+watch(() => surah.value, (newSurah) => {
+  if (newSurah) {
+    // Update title
+    document.title = `Surah ${newSurah.englishName} - Al-Quran`;
+    
+    // Update description
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (!metaDescription) {
+      metaDescription = document.createElement('meta');
+      metaDescription.setAttribute('name', 'description');
+      document.head.appendChild(metaDescription);
+    }
+    metaDescription.setAttribute('content', 
+      `Baca Surah ${newSurah.englishName} (${getIndonesianName(newSurah.englishName)}) dengan terjemahan Bahasa Indonesia`
+    );
+    
+    // Update Open Graph tags
+    let ogTitle = document.querySelector('meta[property="og:title"]');
+    if (!ogTitle) {
+      ogTitle = document.createElement('meta');
+      ogTitle.setAttribute('property', 'og:title');
+      document.head.appendChild(ogTitle);
+    }
+    ogTitle.setAttribute('content', `Surah ${newSurah.englishName} - ${getIndonesianName(newSurah.englishName)}`);
+    
+    let ogDescription = document.querySelector('meta[property="og:description"]');
+    if (!ogDescription) {
+      ogDescription = document.createElement('meta');
+      ogDescription.setAttribute('property', 'og:description');
+      document.head.appendChild(ogDescription);
+    }
+    ogDescription.setAttribute('content', 
+      `Baca dan dengarkan Surah ${newSurah.englishName} (${newSurah.numberOfAyahs} ayat) dengan terjemahan Bahasa Indonesia`
+    );
+  }
+}, { immediate: true });
+
+// Tambahkan fungsi untuk structured data
+const updateStructuredData = () => {
+  if (!surah.value) return;
+  
+  // Hapus schema lama jika ada
+  const existingSchema = document.querySelector('script[type="application/ld+json"]');
+  if (existingSchema) {
+    existingSchema.remove();
+  }
+  
+  // Buat schema baru
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    'name': surah.value.englishName,
+    'headline': `Surah ${surah.value.englishName} - ${getIndonesianName(surah.value.englishName)}`,
+    'description': `Baca dan dengarkan Surah ${surah.value.englishName} dengan terjemahan Bahasa Indonesia`,
+    'articleSection': 'Al-Quran',
+    'numberOfItems': surah.value.numberOfAyahs,
+    'mainEntityOfPage': {
+      '@type': 'WebPage',
+      '@id': `https://quran.ashafizullah.com/surah/${surah.value.number}`
+    }
+  };
+  
+  const script = document.createElement('script');
+  script.setAttribute('type', 'application/ld+json');
+  script.textContent = JSON.stringify(structuredData);
+  document.head.appendChild(script);
+};
+
+// Panggil updateStructuredData saat surah berubah
+watch(() => surah.value, updateStructuredData, { immediate: true });
 
 // Clean up event listeners and stop audio when component unmounts
 const beforeUnmount = () => {
@@ -500,6 +574,10 @@ const getIndonesianName = (englishName: string): string => {
   return surahNamesIndonesian[englishName] || englishName;
 };
 
+const getIndonesianMeaning = (englishName: string): string => {
+  return surahMeaningsIndonesian[englishName] || '';
+};
+
 // Computed property to get current ayah status
 const getAyahStatus = (index: number) => {
   if (currentAyahIndex.value === index) {
@@ -543,7 +621,7 @@ const toggleSurahBookmark = () => {
     } else {
       addSurahBookmark({
         surahNumber: surah.value.number,
-        surahName: surah.value.englishName
+        surahName: getIndonesianName(surah.value.englishName)
       });
       isSurahBookmarked.value = true;
     }
@@ -562,7 +640,7 @@ const toggleAyahBookmark = (index: number) => {
     } else {
       addAyahBookmark({
         surahNumber,
-        surahName: surah.value.englishName,
+        surahName: getIndonesianName(surah.value.englishName),
         ayahNumber,
         ayahText: ayah.text
       });
@@ -605,13 +683,13 @@ const scrollToTop = () => {
     <div v-else-if="surah && translation">
       <div class="mb-4">
         <div class="d-flex justify-content-between mb-3">
-          <router-link to="/" class="btn btn-outline-primary">
+          <router-link to="/" class="btn btn-sm btn-outline-success">
             <i class="bi bi-arrow-left"></i> Kembali ke Daftar Surah
           </router-link>
           
           <button 
             @click="toggleSurahBookmark" 
-            class="btn"
+            class="btn btn-sm"
             :class="isSurahBookmarked ? 'btn-success' : 'btn-outline-success'"
           >
             <i class="bi" :class="isSurahBookmarked ? 'bi-bookmark-fill' : 'bi-bookmark'"></i>
@@ -620,10 +698,10 @@ const scrollToTop = () => {
         </div>
         
         <div class="text-center mb-4">
-          <h1 class="text-success">{{ surah.englishName }}</h1>
+          <h1 class="text-success">{{ getIndonesianName(surah.englishName) }}</h1>
           <h2 class="arabic-text fs-2">{{ surah.name }}</h2>
           <p class="text-muted">
-            <strong>{{ getIndonesianName(surah.englishName) }}</strong> • 
+            <strong>{{ getIndonesianMeaning(surah.englishName) }}</strong> • 
             {{ surah.numberOfAyahs }} ayat • 
             {{ translateRevelationType(surah.revelationType) }}
           </p>
@@ -714,41 +792,49 @@ const scrollToTop = () => {
         :class="{ 'currently-playing': currentAyahIndex === index }"
       >
         <div class="card-body">
-          <div class="d-flex justify-content-between mb-2">
+          <div class="d-flex justify-content-between align-items-center mb-2">
             <span class="badge bg-primary">Ayat {{ ayah.numberInSurah }}</span>
-            <div>
-              <span class="badge bg-secondary me-2">Halaman {{ ayah.page }}</span>
-              
-              <!-- Ayah repeat control -->
-              <div class="btn-group me-2">
-                <button 
-                  class="btn btn-sm btn-outline-info dropdown-toggle" 
-                  type="button" 
-                  data-bs-toggle="dropdown" 
-                  aria-expanded="false"
-                >
-                  Ulang {{ ayahRepeatSettings[ayah.numberInSurah] }}x
+            
+            <div class="d-flex">
+              <!-- Combined action dropdown for less visual clutter -->
+              <div class="dropdown ayah-action-dropdown me-2">
+                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                  <i class="bi bi-gear-fill"></i>
                 </button>
-                <ul class="dropdown-menu">
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-lg-start">
+                  <!-- Repeat options -->
+                  <li><h6 class="dropdown-header">Pengulangan</h6></li>
                   <li v-for="option in defaultRepeatOptions" :key="option">
                     <a 
                       class="dropdown-item" 
                       href="#" 
                       @click.prevent="changeAyahRepeatCount(ayah.numberInSurah, option)"
-                      :class="{ 'active': ayahRepeatSettings[ayah.numberInSurah] === option }"
                     >
+                      <i class="bi bi-check-lg me-2" v-if="ayahRepeatSettings[ayah.numberInSurah] === option"></i>
+                      <span v-else class="me-4"></span>
                       {{ option === 1 ? '1x (tanpa pengulangan)' : option + 'x' }}
                     </a>
+                  </li>
+                  
+                  <li><hr class="dropdown-divider"></li>
+                  
+                  <!-- Page info -->
+                  <li>
+                    <span class="dropdown-item-text">
+                      <i class="bi bi-book me-2"></i>
+                      Halaman {{ ayah.page }}
+                    </span>
                   </li>
                 </ul>
               </div>
               
+              <!-- Bookmark button - simplified to just icon -->
               <button 
                 @click="toggleAyahBookmark(index)" 
                 class="btn btn-sm me-2" 
                 :class="{
                   'btn-warning': ayahBookmarks[ayah.numberInSurah],
-                  'btn-outline-warning': !ayahBookmarks[ayah.numberInSurah]
+                  'btn-outline-secondary': !ayahBookmarks[ayah.numberInSurah]
                 }"
               >
                 <i 
@@ -759,6 +845,8 @@ const scrollToTop = () => {
                   }"
                 ></i>
               </button>
+              
+              <!-- Play button - simplified -->
               <button 
                 @click="playAyah(index)" 
                 class="btn btn-sm" 
@@ -925,5 +1013,20 @@ const scrollToTop = () => {
   0% { background-color: rgba(255, 193, 7, 0.1); }
   50% { background-color: rgba(255, 193, 7, 0.3); }
   100% { background-color: rgba(255, 193, 7, 0); }
+}
+
+.ayah-action-dropdown .dropdown-menu {
+  z-index: 1100; /* Higher than Bootstrap's default */
+  position: absolute !important;
+}
+
+/* Fix positioning issues */
+.card {
+  overflow: visible !important; /* Ensures dropdowns aren't cut off */
+}
+
+/* Prevent hover issues */
+.dropdown-menu.show {
+  transform: translate3d(0px, -100%, 0px) !important; /* Force dropdown to appear above the button */
 }
 </style>

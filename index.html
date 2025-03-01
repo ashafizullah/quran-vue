@@ -4,14 +4,70 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aplikasi Al-Quran</title>
+    <title><%- title %></title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="<%- description %>" />
+    <meta name="keywords" content="<%- keywords %>" />
+    <meta name="author" content="<%- author %>" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="<%- url %>" />
+    <meta property="og:title" content="<%- title %>" />
+    <meta property="og:description" content="<%- description %>" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="<%- url %>" />
+    <meta property="twitter:title" content="<%- title %>" />
+    <meta property="twitter:description" content="<%- description %>" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="<%- url %>" />
+    
+    <!-- Mobile Meta -->
+    <meta name="theme-color" content="#28a745" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    
     <!-- Add Bootstrap icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Add Arabic fonts -->
+    
+    <!-- Add Arabic fonts with preload for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;700&display=swap">
+    
+    <!-- Favicon/App Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <!-- Additional Performance Optimizations -->
+    <link rel="dns-prefetch" href="https://api.alquran.cloud">
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
+    
+    <!-- Application JSON-LD Schema for SEO -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "<%- title %>",
+        "description": "<%- description %>",
+        "url": "<%- url %>",
+        "applicationCategory": "ReligiousApp",
+        "operatingSystem": "Any",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
   </body>
 </html>
