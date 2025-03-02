@@ -1246,11 +1246,6 @@ const isAyahPlaying = (ayahNumber: number) => {
   transform: translate3d(0px, -100%, 0px) !important; /* Force dropdown to appear above the button */
 }
 
-/* Tambahkan di bagian <style scoped> */
-.book-mode .book-page {
-  border-left: 4px solid var(--primary-color);
-}
-
 .mushaf-page {
   text-align: right;
   direction: rtl;
