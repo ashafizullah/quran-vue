@@ -70,14 +70,6 @@ const defaultRepeatOptions = [1, 2, 3, 5, 10];
 // References for scrolling
 const ayahRefs = ref<Record<number, HTMLElement | null>>({});
 const viewMode = ref<'list' | 'book'>('list'); // Default mode tampilan baris per baris
-const pageSize = ref(10); // Jumlah ayat per halaman
-
-const currentPageAyahs = computed(() => {
-  if (!surah.value) return [];
-  const startIdx = (currentPage.value - 1) * pageSize.value;
-  const endIdx = Math.min(startIdx + pageSize.value, surah.value.ayahs.length);
-  return surah.value.ayahs.slice(startIdx, endIdx);
-});
 
 const ayahsByPage = computed(() => {
   if (!surah.value) return {};

@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-
-// Definisikan tipe dengan benar untuk referensi HTML element
-const navbarCollapse = ref<HTMLElement | null>(null);
+import { onMounted, onBeforeUnmount } from 'vue';
 
 // Function untuk menutup navbar
 const closeNavbar = () => {
