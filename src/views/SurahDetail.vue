@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import axios from 'axios';
 import { 
@@ -69,6 +69,48 @@ const defaultRepeatOptions = [1, 2, 3, 5, 10];
 
 // References for scrolling
 const ayahRefs = ref<Record<number, HTMLElement | null>>({});
+const viewMode = ref<'list' | 'book'>('list'); // Default mode tampilan baris per baris
+const pageSize = ref(10); // Jumlah ayat per halaman
+
+const currentPageAyahs = computed(() => {
+  if (!surah.value) return [];
+  const startIdx = (currentPage.value - 1) * pageSize.value;
+  const endIdx = Math.min(startIdx + pageSize.value, surah.value.ayahs.length);
+  return surah.value.ayahs.slice(startIdx, endIdx);
+});
+
+const ayahsByPage = computed(() => {
+  if (!surah.value) return {};
+  
+  const grouped: Record<number, Ayah[]> = {};
+  
+  surah.value.ayahs.forEach((ayah) => {
+    if (!grouped[ayah.page]) {
+      grouped[ayah.page] = [];
+    }
+    grouped[ayah.page].push(ayah);
+  });
+  
+  return grouped;
+});
+
+const availablePages = computed(() => {
+  return Object.keys(ayahsByPage.value).map(Number).sort((a, b) => a - b);
+});
+
+// Ubah currentPage dan totalPages untuk bekerja dengan halaman mushaf sesungguhnya
+const currentPage = ref(1); // Akan diinisialisasi dengan halaman mushaf pertama dalam onMounted
+const totalPages = computed(() => availablePages.value.length);
+
+// Tambahkan getter untuk halaman mushaf saat ini
+const currentMushaPage = computed(() => {
+  return availablePages.value[currentPage.value - 1] || 1;
+});
+
+// Tambahkan getter untuk ayat-ayat pada halaman mushaf saat ini
+const currentMushaPageAyahs = computed(() => {
+  return ayahsByPage.value[currentMushaPage.value] || [];
+});
 
 // Auto-scroll setting
 const autoScroll = ref(true); // Default: auto-scroll to the current ayah is enabled
@@ -163,6 +205,18 @@ onMounted(() => {
   audioPlayer.value = new Audio();
   audioPlayer.value.addEventListener('ended', handleAudioEnded);
   fetchSurah(route.params.id);
+
+  const savedViewMode = localStorage.getItem('quran-app-view-mode');
+  if (savedViewMode === 'list' || savedViewMode === 'book') {
+    viewMode.value = savedViewMode;
+  }
+
+  fetchSurah(route.params.id).then(() => {
+    // Inisialisasi halaman dengan halaman mushaf pertama yang memiliki ayat dari surah ini
+    if (surah.value && surah.value.ayahs.length > 0) {
+      currentPage.value = 1; // Ini adalah index halaman (1-based), bukan nomor halaman mushaf
+    }
+  });
   
   const unregisterRouterGuard = router.beforeEach((_, from) => {
     // If we're navigating away from this page, stop the audio
@@ -665,6 +719,40 @@ const scrollToTop = () => {
     behavior: 'smooth'
   });
 };
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+const goToPage = (pageIndex: number) => {
+  if (pageIndex >= 1 && pageIndex <= totalPages.value) {
+    currentPage.value = pageIndex;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+};
+
+const toggleViewMode = () => {
+  viewMode.value = viewMode.value === 'list' ? 'book' : 'list';
+  // Reset ke halaman pertama saat beralih mode
+  currentPage.value = 1;
+  // Simpan preferensi mode di localStorage
+  localStorage.setItem('quran-app-view-mode', viewMode.value);
+};
+
+const isAyahPlaying = (ayahNumber: number) => {
+  if (currentAyahIndex.value === null || !surah.value) return false;
+  return surah.value.ayahs[currentAyahIndex.value].numberInSurah === ayahNumber;
+};
 </script>
 
 <template>
@@ -777,108 +865,256 @@ const scrollToTop = () => {
               </div>
             </div>
           </div>
+
+          <div class="view-mode-toggle mb-4">
+            <div class="btn-group" role="group">
+              <button 
+                class="btn" 
+                :class="(viewMode as 'list' | 'book') === 'list' ? 'btn-success' : 'btn-outline-success'" 
+                @click="toggleViewMode"
+                v-if="(viewMode as 'list' | 'book') === 'book'"
+              >
+                <i class="bi bi-list-ul me-1"></i> Mode Baris
+              </button>
+              <button 
+                class="btn" 
+                :class="(viewMode as 'list' | 'book') === 'book' ? 'btn-success' : 'btn-outline-success'" 
+                @click="toggleViewMode"
+                v-if="(viewMode as 'list' | 'book') === 'list'"
+              >
+                <i class="bi bi-book me-1"></i> Mode Mushaf
+              </button>
+            </div>
+          </div>
           
           <div class="bismillah text-center my-4 fs-3 arabic-text" v-if="surah.number !== 1 && surah.number !== 9">
             بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
           </div>
         </div>
       </div>
-      
-      <div 
-        class="card mb-4" 
-        v-for="(ayah, index) in surah.ayahs" 
-        :key="ayah.number"
-        :ref="el => setAyahRef(el, ayah.numberInSurah)"
-        :class="{ 'currently-playing': currentAyahIndex === index }"
-      >
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="badge bg-primary">Ayat {{ ayah.numberInSurah }}</span>
-            
-            <div class="d-flex">
-              <!-- Combined action dropdown for less visual clutter -->
-              <div class="dropdown ayah-action-dropdown me-2">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
-                  <i class="bi bi-gear-fill"></i>
+      <div v-if="viewMode === 'list'">
+        <div 
+          class="card mb-4" 
+          v-for="(ayah, index) in surah.ayahs" 
+          :key="ayah.number"
+          :ref="el => setAyahRef(el, ayah.numberInSurah)"
+          :class="{ 'currently-playing': currentAyahIndex === index }"
+        >
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-primary">Ayat {{ ayah.numberInSurah }}</span>
+              
+              <div class="d-flex">
+                <!-- Combined action dropdown for less visual clutter -->
+                <div class="dropdown ayah-action-dropdown me-2">
+                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="bi bi-gear-fill"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end dropdown-menu-lg-start">
+                    <!-- Repeat options -->
+                    <li><h6 class="dropdown-header">Pengulangan</h6></li>
+                    <li v-for="option in defaultRepeatOptions" :key="option">
+                      <a 
+                        class="dropdown-item" 
+                        href="#" 
+                        @click.prevent="changeAyahRepeatCount(ayah.numberInSurah, option)"
+                      >
+                        <i class="bi bi-check-lg me-2" v-if="ayahRepeatSettings[ayah.numberInSurah] === option"></i>
+                        <span v-else class="me-4"></span>
+                        {{ option === 1 ? '1x (tanpa pengulangan)' : option + 'x' }}
+                      </a>
+                    </li>
+                    
+                    <li><hr class="dropdown-divider"></li>
+                    
+                    <!-- Page info -->
+                    <li>
+                      <span class="dropdown-item-text">
+                        <i class="bi bi-book me-2"></i>
+                        Halaman {{ ayah.page }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <!-- Bookmark button - simplified to just icon -->
+                <button 
+                  @click="toggleAyahBookmark(index)" 
+                  class="btn btn-sm me-2" 
+                  :class="{
+                    'btn-warning': ayahBookmarks[ayah.numberInSurah],
+                    'btn-outline-secondary': !ayahBookmarks[ayah.numberInSurah]
+                  }"
+                >
+                  <i 
+                    class="bi" 
+                    :class="{
+                      'bi-bookmark-star-fill': ayahBookmarks[ayah.numberInSurah],
+                      'bi-bookmark-star': !ayahBookmarks[ayah.numberInSurah]
+                    }"
+                  ></i>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-lg-start">
-                  <!-- Repeat options -->
-                  <li><h6 class="dropdown-header">Pengulangan</h6></li>
-                  <li v-for="option in defaultRepeatOptions" :key="option">
-                    <a 
-                      class="dropdown-item" 
-                      href="#" 
-                      @click.prevent="changeAyahRepeatCount(ayah.numberInSurah, option)"
-                    >
-                      <i class="bi bi-check-lg me-2" v-if="ayahRepeatSettings[ayah.numberInSurah] === option"></i>
-                      <span v-else class="me-4"></span>
-                      {{ option === 1 ? '1x (tanpa pengulangan)' : option + 'x' }}
-                    </a>
-                  </li>
-                  
-                  <li><hr class="dropdown-divider"></li>
-                  
-                  <!-- Page info -->
-                  <li>
-                    <span class="dropdown-item-text">
-                      <i class="bi bi-book me-2"></i>
-                      Halaman {{ ayah.page }}
-                    </span>
-                  </li>
-                </ul>
+                
+                <!-- Play button - simplified -->
+                <button 
+                  @click="playAyah(index)" 
+                  class="btn btn-sm" 
+                  :class="{
+                    'btn-success': getAyahStatus(index) === 'playing',
+                    'btn-outline-success': getAyahStatus(index) !== 'playing'
+                  }"
+                >
+                  <i 
+                    class="bi" 
+                    :class="{
+                      'bi-pause-fill': getAyahStatus(index) === 'playing',
+                      'bi-play-fill': getAyahStatus(index) !== 'playing'
+                    }"
+                  ></i>
+                </button>
               </div>
-              
-              <!-- Bookmark button - simplified to just icon -->
-              <button 
-                @click="toggleAyahBookmark(index)" 
-                class="btn btn-sm me-2" 
-                :class="{
-                  'btn-warning': ayahBookmarks[ayah.numberInSurah],
-                  'btn-outline-secondary': !ayahBookmarks[ayah.numberInSurah]
-                }"
-              >
-                <i 
-                  class="bi" 
-                  :class="{
-                    'bi-bookmark-star-fill': ayahBookmarks[ayah.numberInSurah],
-                    'bi-bookmark-star': !ayahBookmarks[ayah.numberInSurah]
-                  }"
-                ></i>
-              </button>
-              
-              <!-- Play button - simplified -->
-              <button 
-                @click="playAyah(index)" 
-                class="btn btn-sm" 
-                :class="{
-                  'btn-success': getAyahStatus(index) === 'playing',
-                  'btn-outline-success': getAyahStatus(index) !== 'playing'
-                }"
-              >
-                <i 
-                  class="bi" 
-                  :class="{
-                    'bi-pause-fill': getAyahStatus(index) === 'playing',
-                    'bi-play-fill': getAyahStatus(index) !== 'playing'
-                  }"
-                ></i>
-              </button>
             </div>
-          </div>
-          
-          <p class="arabic-text text-end" :class="`fs-${arabicTextSize}`">
-            {{ 
-              ayah.numberInSurah === 1 && surah.number !== 1 ? 
-              removeBismillahIfNeeded(ayah.text, surah.number) : 
-              ayah.text 
-            }}
-          </p>
+            
+            <p class="arabic-text text-end" :class="`fs-${arabicTextSize}`">
+              {{ 
+                ayah.numberInSurah === 1 && surah.number !== 1 ? 
+                removeBismillahIfNeeded(ayah.text, surah.number) : 
+                ayah.text 
+              }}
+            </p>
 
-          <p v-if="translation && translation.ayahs[index]" class="mb-0" :class="translationTextSize > 0 ? `fs-${translationTextSize}` : ''">
-            {{ translation.ayahs[index].text }}
-          </p>
+            <p v-if="translation && translation.ayahs[index]" class="mb-0" :class="translationTextSize > 0 ? `fs-${translationTextSize}` : ''">
+              {{ translation.ayahs[index].text }}
+            </p>
+          </div>
         </div>
       </div>
+      <!-- Mode Book (Mushaf) -->
+      <div v-else-if="viewMode === 'book'" class="book-mode">
+      <div class="card book-page mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            Halaman {{ currentPage }} dari {{ totalPages }}
+            <small class="ms-2">(Mushaf hal. {{ currentMushaPage }})</small>
+          </h5>
+          <div class="btn-group">
+            <button @click="prevPage" class="btn btn-sm btn-light" :disabled="currentPage === 1">
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button @click="nextPage" class="btn btn-sm btn-light" :disabled="currentPage === totalPages">
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body p-4">
+          <div class="mushaf-page arabic-text" :class="`fs-${arabicTextSize}`">
+            <template v-for="ayah in currentMushaPageAyahs" :key="ayah.number">
+              <!-- Tampilkan teks Arab -->
+              <span class="ayah-text">
+                {{ 
+                  ayah.numberInSurah === 1 && surah.number !== 1 ? 
+                  removeBismillahIfNeeded(ayah.text, surah.number) : 
+                  ayah.text 
+                }}
+              </span>
+              <span class="ayah-container">
+                <!-- Nomor ayat dengan style lingkaran -->
+                <span class="ayah-number" 
+                  :id="`ayah-${ayah.numberInSurah}`"
+                  :class="{ 'playing': isAyahPlaying(ayah.numberInSurah) }"
+                >
+                  {{ ayah.numberInSurah }}
+                </span>
+                
+                <!-- Audio dan bookmark controls (muncul saat hover nomor ayat) -->
+                <span class="ayah-controls">
+                  <button 
+                    @click="isAyahPlaying(ayah.numberInSurah) ? togglePlayPause() : playAyah(surah.ayahs.findIndex(a => a.numberInSurah === ayah.numberInSurah))" 
+                    class="btn btn-sm"
+                    :class="isAyahPlaying(ayah.numberInSurah) ? (isPlaying ? 'btn-success' : 'btn-outline-success') : 'btn-outline-success'"
+                  >
+                    <i class="bi" :class="isAyahPlaying(ayah.numberInSurah) ? (isPlaying ? 'bi-pause-fill' : 'bi-play-fill') : 'bi-play-fill'"></i>
+                  </button>
+                  <button 
+                    @click="toggleAyahBookmark(surah.ayahs.findIndex(a => a.numberInSurah === ayah.numberInSurah))" 
+                    class="btn btn-sm" 
+                    :class="ayahBookmarks[ayah.numberInSurah] ? 'btn-warning' : 'btn-outline-secondary'"
+                  >
+                    <i class="bi" :class="ayahBookmarks[ayah.numberInSurah] ? 'bi-bookmark-star-fill' : 'bi-bookmark-star'"></i>
+                  </button>
+                </span>
+              </span>
+            </template>
+          </div>
+        </div>
+        
+        <!-- Tampilkan info halaman mushaf -->
+        <div class="card-footer bg-light">
+          <div class="d-flex justify-content-center align-items-center">
+            <span class="badge bg-secondary me-3">
+              Mushaf halaman: {{ currentMushaPage }}
+            </span>
+            <span class="text-muted">
+              Ayat: {{ currentMushaPageAyahs.length > 0 ? 
+              `${currentMushaPageAyahs[0].numberInSurah} - ${currentMushaPageAyahs[currentMushaPageAyahs.length-1].numberInSurah}` : '0' }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Pagination controls -->
+        <div class="card-footer">
+          <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <a class="page-link" href="#" @click.prevent="prevPage">
+                  <i class="bi bi-chevron-left"></i>
+                </a>
+              </li>
+              
+              <!-- Show first page -->
+              <li class="page-item" :class="{ active: currentPage === 1 }">
+                <a class="page-link" href="#" @click.prevent="goToPage(1)">1</a>
+              </li>
+              
+              <!-- Ellipsis if needed -->
+              <li class="page-item disabled" v-if="currentPage > 3">
+                <span class="page-link">...</span>
+              </li>
+              
+              <!-- Show current page and adjacent pages -->
+              <template v-for="offset in [-1, 0, 1]" :key="'page-' + (currentPage + offset)">
+                <li 
+                  v-if="(currentPage + offset) > 1 && (currentPage + offset) < totalPages"
+                  class="page-item" 
+                  :class="{ active: offset === 0 }"
+                >
+                  <a class="page-link" href="#" @click.prevent="goToPage(currentPage + offset)">
+                    {{ currentPage + offset }}
+                  </a>
+                </li>
+              </template>
+              
+              <!-- Ellipsis if needed -->
+              <li class="page-item disabled" v-if="currentPage < totalPages - 2">
+                <span class="page-link">...</span>
+              </li>
+              
+              <!-- Show last page -->
+              <li class="page-item" :class="{ active: currentPage === totalPages }" v-if="totalPages > 1">
+                <a class="page-link" href="#" @click.prevent="goToPage(totalPages)">{{ totalPages }}</a>
+              </li>
+              
+              <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                <a class="page-link" href="#" @click.prevent="nextPage">
+                  <i class="bi bi-chevron-right"></i>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
     </div>
     <div class="floating-controls">
       <div class="btn-group-vertical shadow">
@@ -922,15 +1158,13 @@ const scrollToTop = () => {
 .currently-playing {
   box-shadow: 0 0 15px rgba(40, 167, 69, 0.5);
   border: 2px solid #28a745;
-  transition: all 0.3s ease;
 }
 
 .currently-playing .card-body {
   background-color: rgba(40, 167, 69, 0.05);
 }
 
-/* Smooth transition for better UX */
-.card {
+.card, .currently-playing {
   transition: all 0.3s ease;
 }
 
@@ -995,16 +1229,6 @@ const scrollToTop = () => {
   border-color: rgba(13, 110, 253, 0.5);
 }
 
-.floating-controls .btn:first-child {
-  border-top-left-radius: 0.25rem;
-  border-top-right-radius: 0.25rem;
-}
-
-.floating-controls .btn:last-child {
-  border-bottom-left-radius: 0.25rem;
-  border-bottom-right-radius: 0.25rem;
-}
-
 .highlight-ayah {
   animation: highlight-pulse 3s ease;
 }
@@ -1028,5 +1252,149 @@ const scrollToTop = () => {
 /* Prevent hover issues */
 .dropdown-menu.show {
   transform: translate3d(0px, -100%, 0px) !important; /* Force dropdown to appear above the button */
+}
+
+/* Tambahkan di bagian <style scoped> */
+.book-mode .book-page {
+  border-left: 4px solid var(--primary-color);
+}
+
+.mushaf-page {
+  text-align: right;
+  direction: rtl;
+  line-height: 2.5;
+  padding: 1rem;
+  background-color: #fff9f0; /* Warna background sedikit kekuningan seperti kertas */
+}
+
+.ayah-text {
+  display: inline;
+}
+
+.ayah-number {
+  display: inline-block;
+  font-family: Arial, sans-serif;
+  font-size: 0.8em;
+  width: auto;
+  min-width: 25px;
+  padding: 0 5px;
+  height: 25px;
+  line-height: 25px;
+  text-align: center;
+  background-color: #f8f8f8;
+  border-radius: 50%;
+  margin: 0 5px;
+  position: relative;
+  cursor: pointer;
+  border: 2px solid #28a745;
+  color: #28a745;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(40, 167, 69, 0.3);
+  transition: all 0.2s ease;
+}
+
+.ayah-number:hover {
+  background-color: #28a745;
+  color: white;
+  transform: scale(1.1);
+}
+
+.ayah-controls {
+  display: none;
+  position: absolute;
+  bottom: -40px;
+  right: 0;
+  background-color: white;
+  padding: 5px;
+  border-radius: 4px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 10;
+  transition: visibility 0s, opacity 0.3s;
+  opacity: 0;
+  visibility: hidden;
+}
+
+.ayah-container {
+  position: relative;
+  display: inline-block;
+}
+
+.ayah-container:hover .ayah-controls {
+  display: inline-block;
+  opacity: 1;
+  visibility: visible;
+}
+
+.ayah-number:hover + .ayah-controls {
+  display: inline-block;
+  opacity: 1;
+  visibility: visible;
+}
+
+.ayah-number:hover + .ayah-controls,
+.ayah-controls:hover {
+  display: inline-block;
+}
+
+.pagination .page-link {
+  color: var(--primary-color);
+}
+
+.pagination .page-item.active .page-link {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.view-mode-toggle {
+  text-align: center;
+}
+
+/* Memperbaiki ikon mode */
+.view-mode-toggle .btn-group .btn .bi {
+  margin-right: 4px;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.ayah-number.playing {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+  animation: pulse 1s infinite;
+}
+
+.book-mode .card-footer.bg-light {
+  border-top: 1px dashed #dee2e6;
+  padding: 0.75rem;
+}
+
+.mushaf-page {
+  min-height: 60vh;
+  background-image: linear-gradient(to bottom, #fff9f0 0%, #fff9f0 99%);
+  background-size: 100% 2.5em;
+  background-attachment: local;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+  padding: 1.5rem;
+  border-radius: 5px;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.mushaf-page::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background-color: #28a745;
+  opacity: 0.3;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
 }
 </style>

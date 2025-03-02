@@ -88,6 +88,13 @@ const getIndonesianMeaning = (englishName: string): string => {
 function toggleStats() {
   statsCollapsed.value = !statsCollapsed.value;
 }
+
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
 </script>
 
 <template>
@@ -205,6 +212,13 @@ function toggleStats() {
         </div>
       </div>
     </div>
+    <div class="floating-controls">
+      <div class="btn-group-vertical shadow">
+        <button class="btn btn-primary" @click="scrollToTop" title="Kembali ke Atas">
+          <i class="bi bi-arrow-up"></i>
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -252,5 +266,36 @@ function toggleStats() {
 
 .card-header:hover {
   background-color: rgba(0, 0, 0, 0.03);
+}
+
+.floating-controls {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.floating-controls .btn-group-vertical {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 0.25rem;
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+  opacity: 0.7;
+}
+
+.floating-controls .btn-group-vertical:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.floating-controls .btn {
+  border-radius: 0.25rem;
+  background-color: rgba(13, 110, 253, 0.7);
+  border-color: rgba(13, 110, 253, 0.3);
+  transition: all 0.2s ease;
+}
+
+.floating-controls .btn:hover {
+  background-color: rgba(13, 110, 253, 0.9);
+  border-color: rgba(13, 110, 253, 0.5);
 }
 </style>

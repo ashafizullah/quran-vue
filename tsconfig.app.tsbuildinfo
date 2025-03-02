@@ -1,0 +1,1 @@
+{"root":["./src/main.ts","./src/vite-env.d.ts","./src/utils/bookmarkstore.ts","./src/utils/surahtranslations.ts","./src/app.vue","./src/components/helloworld.vue","./src/views/about.vue","./src/views/bookmarksview.vue","./src/views/changelog.vue","./src/views/home.vue","./src/views/surahdetail.vue"],"errors":true,"version":"5.7.3"}

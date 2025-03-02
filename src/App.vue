@@ -1,8 +1,51 @@
 <script setup lang="ts">
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+
+// Definisikan tipe dengan benar untuk referensi HTML element
+const navbarCollapse = ref<HTMLElement | null>(null);
+
+// Function untuk menutup navbar
+const closeNavbar = () => {
+  const navbarElement = document.getElementById('navbarNav');
+  if (navbarElement && navbarElement.classList.contains('show')) {
+    // Dapatkan tombol toggle navbar
+    const navbarToggler = document.querySelector('.navbar-toggler') as HTMLElement;
+    if (navbarToggler) {
+      navbarToggler.click();
+    }
+  }
+};
+
+// Handler untuk klik pada dokumen
+const handleDocumentClick = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  const navbarElement = document.getElementById('navbarNav');
+  
+  // Periksa apakah navbar sedang terbuka
+  if (navbarElement && navbarElement.classList.contains('show')) {
+    // Periksa apakah klik berada di luar navbar dan bukan pada tombol toggler
+    if (
+      !navbarElement.contains(target) && 
+      !target.closest('.navbar-toggler')
+    ) {
+      closeNavbar();
+    }
+  }
+};
+
+onMounted(() => {
+  // Pasang event listener untuk klik pada dokumen
+  document.addEventListener('click', handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  // Bersihkan event listener
+  document.removeEventListener('click', handleDocumentClick);
+});
 </script>
 
 <template>
-  <div class="container-fluid">
+  <div class="container-lg">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
       <div class="container">
         <router-link class="navbar-brand" to="/">
@@ -14,23 +57,25 @@
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav">
             <li class="nav-item">
-              <router-link class="nav-link" to="/">Beranda</router-link>
+              <router-link class="nav-link" to="/" @click="closeNavbar">
+                Beranda
+              </router-link>
             </li>
             <li class="nav-item">
-              <router-link class="nav-link" to="/bookmarks">
+              <router-link class="nav-link" to="/bookmarks" @click="closeNavbar">
                 <i class="bi bi-bookmarks me-1"></i>Bookmark
               </router-link>
             </li>
             <li class="nav-item">
-              <router-link class="nav-link" to="/about">
+              <router-link class="nav-link" to="/about" @click="closeNavbar">
                 <i class="bi bi-info-circle me-1"></i>Tentang
               </router-link>
             </li>
-            <li class="nav-item">
-              <router-link class="nav-link" to="/changelog">
+            <!-- <li class="nav-item">
+              <router-link class="nav-link" to="/changelog" @click="closeNavbar">
                 <i class="bi bi-list-check me-1"></i>Changelog
               </router-link>
-            </li>
+            </li> -->
           </ul>
         </div>
       </div>
