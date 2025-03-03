@@ -357,34 +357,42 @@ onBeforeUnmount(() => {
               <h5 class="mb-0">Hasil Arah Kiblat</h5>
             </div>
             <div class="card-body text-center">
-              <div v-if="showCompass" class="compass-container mb-4">
-                <div class="compass">
-                  <div class="compass-inner" :style="`transform: rotate(${calculatedRotation()}deg)`">
-                    <div class="north-indicator">N</div>
-                    <div class="needle"></div>
-                    <div class="kaaba-indicator">
-                      <i class="bi bi-house-fill"></i>
+                <div v-if="showCompass" class="qibla-result mb-4">
+                    <!-- Compass display -->
+                    <div class="compass-container">
+                        <div class="compass">
+                        <div class="compass-inner" :style="`transform: rotate(${calculatedRotation()}deg)`">
+                            <div class="north-indicator">N</div>
+                            <div class="needle"></div>
+                            <div class="kaaba-indicator">
+                            <i class="bi bi-house-fill"></i>
+                            </div>
+                        </div>
+                        </div>
                     </div>
-                  </div>
+                    
+                    <!-- Horizontal divider with spacing -->
+                    <hr class="my-4">
+                    
+                    <!-- Live compass toggle button in new row -->
+                    <div class="live-compass-toggle text-center">
+                        <button @click="toggleLiveCompass" class="btn btn-lg" :class="isLiveCompass ? 'btn-success' : 'btn-outline-success'">
+                        <i class="bi" :class="isLiveCompass ? 'bi-compass-fill' : 'bi-compass'"></i>
+                        {{ isLiveCompass ? 'Kompas Live Aktif' : 'Aktifkan Kompas Live' }}
+                        </button>
+                        
+                        <div v-if="orientationSupported && !hasOrientationPermission && hasOrientationPermission !== null" class="alert alert-warning mt-3">
+                        Izin sensor orientasi ditolak. Kompas live tidak dapat diaktifkan.
+                        </div>
+                        <div v-if="!orientationSupported" class="alert alert-warning mt-3">
+                        Perangkat atau browser Anda tidak mendukung sensor orientasi.
+                        </div>
+                        <div v-if="isLiveCompass" class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Arahkan perangkat Anda secara horizontal dan putar hingga panah menunjuk ke depan untuk menemukan arah kiblat.
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="live-compass-toggle mt-3">
-                  <button @click="toggleLiveCompass" class="btn" :class="isLiveCompass ? 'btn-success' : 'btn-outline-success'">
-                    <i class="bi" :class="isLiveCompass ? 'bi-compass-fill' : 'bi-compass'"></i>
-                    {{ isLiveCompass ? 'Kompas Live Aktif' : 'Aktifkan Kompas Live' }}
-                  </button>
-                  <div v-if="orientationSupported && !hasOrientationPermission && hasOrientationPermission !== null" class="alert alert-warning mt-2">
-                    Izin sensor orientasi ditolak. Kompas live tidak dapat diaktifkan.
-                  </div>
-                  <div v-if="!orientationSupported" class="alert alert-warning mt-2">
-                    Perangkat atau browser Anda tidak mendukung sensor orientasi.
-                  </div>
-                  <div v-if="isLiveCompass" class="alert alert-info mt-2">
-                    <i class="bi bi-info-circle me-2"></i>
-                    Arahkan perangkat Anda secara horizontal dan putar hingga panah menunjuk ke depan untuk menemukan arah kiblat.
-                  </div>
-                </div>
-              </div>
               
               <h2 class="mb-3">{{ qiblaData.direction.toFixed(2) }}°</h2>
               <p class="mb-0">Arahkan ke {{ getDirection(qiblaData.direction) }}</p>
@@ -497,5 +505,23 @@ function getDirection(degrees: number): string {
     width: 200px;
     height: 200px;
   }
+}
+
+.qibla-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.compass-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 20px 0;
+}
+
+.live-compass-toggle {
+  width: 100%;
+  padding-top: 10px;
 }
 </style>
