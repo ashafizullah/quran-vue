@@ -10,13 +10,15 @@ import SurahDetail from './views/SurahDetail.vue'
 import BookmarksView from './views/BookmarksView.vue'
 import About from './views/About.vue'
 import Changelog from './views/Changelog.vue'
+import PrayerTimesView from './views/PrayerTimesView.vue'
 
 const routes = [
   { path: '/', component: Home },
   { path: '/surah/:id/:ayah?', component: SurahDetail, props: true },
   { path: '/bookmarks', component: BookmarksView },
   { path: '/about', component: About },
-  { path: '/changelog', component: Changelog }
+  { path: '/changelog', component: Changelog },
+  { path: '/prayer-times', component: PrayerTimesView }
 ]
 
 const router = createRouter({

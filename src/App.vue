@@ -64,6 +64,11 @@ onBeforeUnmount(() => {
               </router-link>
             </li>
             <li class="nav-item">
+              <router-link class="nav-link" to="/prayer-times">
+                <i class="bi bi-clock me-1"></i>Jadwal Shalat
+              </router-link>
+            </li>
+            <li class="nav-item">
               <router-link class="nav-link" to="/about" @click="closeNavbar">
                 <i class="bi bi-info-circle me-1"></i>Tentang
               </router-link>
