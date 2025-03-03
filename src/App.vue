@@ -69,6 +69,16 @@ onBeforeUnmount(() => {
               </router-link>
             </li>
             <li class="nav-item">
+              <router-link class="nav-link" to="/asmaul-husna">
+                <i class="bi bi-stars me-1"></i>Asmaul Husna
+              </router-link>
+            </li>
+            <li class="nav-item">
+              <router-link class="nav-link" to="/qibla">
+                <i class="bi bi-compass me-1"></i>Arah Kiblat
+              </router-link>
+            </li>
+            <li class="nav-item">
               <router-link class="nav-link" to="/about" @click="closeNavbar">
                 <i class="bi bi-info-circle me-1"></i>Tentang
               </router-link>

@@ -1,0 +1,42 @@
+.tajweed-ham, [tajweed=ham]{
+    color: #DD0000;
+  }
+  .tajweed-ghn, [tajweed=ghn]{
+    color: #FF7E1E;
+  }
+  .tajweed-qal, [tajweed=qal]{
+    color: #DD0000;
+  }
+  .tajweed-slq, [tajweed=slq]{
+    color: #DD0000;
+  }
+  .tajweed-idg, [tajweed=idg]{
+    color: #169200;
+  }
+  .tajweed-idk, [tajweed=idk]{
+    color: #169200;
+  }
+  .tajweed-ids, [tajweed=ids]{
+    color: #169200;
+  }
+  .tajweed-idt, [tajweed=idt]{
+    color: #169200;
+  }
+  .tajweed-ikf, [tajweed=ikf]{
+    color: #9400FF;
+  }
+  .tajweed-iql, [tajweed=iql]{
+    color: #9400FF;
+  }
+  .tajweed-ikh, [tajweed=ikh]{
+    color: #9400FF;
+  }
+  .tajweed-med, [tajweed=med]{
+    color: #000EBC;
+  }
+  .tajweed-idm, [tajweed=idm]{
+    color: #169200;
+  }
+  .tajweed-skn, [tajweed=skn]{
+    color: black;
+  }

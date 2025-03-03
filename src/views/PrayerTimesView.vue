@@ -43,34 +43,52 @@ interface TimingsData {
   };
 }
 
-// Daftar kota-kota besar di Indonesia dengan koordinat
+// Daftar kota-kota besar di Indonesia
 const indonesianCities = [
-  { name: 'Jakarta', latitude: -6.2088, longitude: 106.8456 },
-  { name: 'Surabaya', latitude: -7.2575, longitude: 112.7521 },
-  { name: 'Bandung', latitude: -6.9175, longitude: 107.6191 },
-  { name: 'Medan', latitude: 3.5952, longitude: 98.6722 },
-  { name: 'Semarang', latitude: -6.9932, longitude: 110.4203 },
-  { name: 'Makassar', latitude: -5.1477, longitude: 119.4327 },
-  { name: 'Palembang', latitude: -2.9761, longitude: 104.7754 },
-  { name: 'Tangerang', latitude: -6.1781, longitude: 106.6305 },
-  { name: 'Depok', latitude: -6.4025, longitude: 106.7942 },
-  { name: 'Yogyakarta', latitude: -7.7971, longitude: 110.3688 },
-  { name: 'Aceh', latitude: 4.6951, longitude: 96.7494 },
-  { name: 'Padang', latitude: -0.9471, longitude: 100.4172 },
-  { name: 'Manado', latitude: 1.4748, longitude: 124.8421 },
-  { name: 'Denpasar', latitude: -8.6705, longitude: 115.2126 },
-  { name: 'Balikpapan', latitude: -1.2379, longitude: 116.8529 },
-  { name: 'Banjarmasin', latitude: -3.3186, longitude: 114.5944 },
-  { name: 'Pontianak', latitude: 0.0263, longitude: 109.3425 },
-  { name: 'Malang', latitude: -7.9666, longitude: 112.6326 },
-  { name: 'Pekanbaru', latitude: 0.5103, longitude: 101.4478 },
-  { name: 'Samarinda', latitude: -0.4948, longitude: 117.1436 },
-  { name: 'Batam', latitude: 1.1301, longitude: 104.0529 },
+  { name: 'Jakarta', address: 'Jakarta,ID' },
+  { name: 'Surabaya', address: 'Surabaya,ID' },
+  { name: 'Bandung', address: 'Bandung,ID' },
+  { name: 'Medan', address: 'Medan,ID' },
+  { name: 'Semarang', address: 'Semarang,ID' },
+  { name: 'Makassar', address: 'Makassar,ID' },
+  { name: 'Palembang', address: 'Palembang,ID' },
+  { name: 'Tangerang', address: 'Tangerang,ID' },
+  { name: 'Depok', address: 'Depok,ID' },
+  { name: 'Yogyakarta', address: 'Yogyakarta,ID' },
+  { name: 'Aceh', address: 'Aceh,ID' },
+  { name: 'Padang', address: 'Padang,ID' },
+  { name: 'Manado', address: 'Manado,ID' },
+  { name: 'Denpasar', address: 'Denpasar,ID' },
+  { name: 'Balikpapan', address: 'Balikpapan,ID' },
+  { name: 'Banjarmasin', address: 'Banjarmasin,ID' },
+  { name: 'Pontianak', address: 'Pontianak,ID' },
+  { name: 'Malang', address: 'Malang,ID' },
+  { name: 'Pekanbaru', address: 'Pekanbaru,ID' },
+  { name: 'Samarinda', address: 'Samarinda,ID' },
+  { name: 'Batam', address: 'Batam,ID' },
 ];
+
+interface CalculationMethod {
+  id: number;
+  name: string;
+  params: {
+    Fajr: number;
+    Isha: number;
+  };
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
+interface Methods {
+  [key: string]: CalculationMethod;
+}
 
 // Data dan state
 const selectedCity = ref(indonesianCities[0]);
-const calculationMethod = ref(20); // Default: Kementerian Agama RI
+const calculationMethods = ref<Methods>({});
+const selectedMethod = ref(20); // Default metode 20 (Universal untuk Indonesia)
 const prayerTimesData = ref<TimingsData | null>(null);
 const loading = ref(false);
 const error = ref('');
@@ -78,19 +96,19 @@ const selectedDate = ref(new Date().toISOString().split('T')[0]); // Format YYYY
 const monthlyData = ref<TimingsData[]>([]);
 const showMonthlyView = ref(false);
 
-// Mengambil data waktu shalat
+// Mengambil data waktu shalat menggunakan timingsByAddress
 const fetchPrayerTimes = async () => {
   loading.value = true;
   error.value = '';
   
   try {
-    const response = await axios.get('https://api.aladhan.com/v1/timings', {
+    // Format tanggal untuk API: DD-MM-YYYY
+    const formattedDate = selectedDate.value.split('-').reverse().join('-');
+    
+    const response = await axios.get(`https://api.aladhan.com/v1/timingsByAddress/${formattedDate}`, {
       params: {
-        latitude: selectedCity.value.latitude,
-        longitude: selectedCity.value.longitude,
-        method: calculationMethod.value,
-        date: selectedDate.value,
-        //tune: '5,3,5,7,9,-1,0,8,-6' //Imsak,Fajr,Sunrise,Dhuhr,Asr,Maghrib,Sunset,Isha,Midnight
+        address: selectedCity.value.address,
+        method: selectedMethod.value
       }
     });
     
@@ -112,11 +130,10 @@ const fetchMonthlyPrayerTimes = async () => {
     // Mendapatkan tahun dan bulan dari tanggal yang dipilih
     const [year, month] = selectedDate.value.split('-');
     
-    const response = await axios.get('https://api.aladhan.com/v1/calendar', {
+    const response = await axios.get('https://api.aladhan.com/v1/calendarByAddress', {
       params: {
-        latitude: selectedCity.value.latitude,
-        longitude: selectedCity.value.longitude,
-        method: calculationMethod.value,
+        address: selectedCity.value.address,
+        method: selectedMethod.value,
         month,
         year
       }
@@ -176,11 +193,13 @@ const toggleMonthlyView = () => {
 
 // Memuat data waktu shalat saat komponen dimuat
 onMounted(() => {
-  fetchPrayerTimes();
+  fetchCalculationMethods().then(() => {
+    fetchPrayerTimes();
+  });
 });
 
-// Watch perubahan kota, metode perhitungan, atau tanggal
-watch([selectedCity, calculationMethod, selectedDate], () => {
+// Watch perubahan kota, metode, atau tanggal
+watch([selectedCity, selectedMethod, selectedDate], () => {
   fetchPrayerTimes();
   
   if (showMonthlyView.value) {
@@ -209,6 +228,70 @@ const formatIndonesianDate = (dateStr: string) => {
   const [year, month, day] = dateStr.split('-');
   return `${day} ${getIndonesianMonth(parseInt(month))} ${year}`;
 };
+
+// Fungsi untuk mendapatkan nama metode dari ID
+const getMethodName = (methodId: number): string => {
+  // Cari metode berdasarkan ID
+  for (const key in calculationMethods.value) {
+    if (calculationMethods.value[key].id === methodId) {
+      return calculationMethods.value[key].name;
+    }
+  }
+  
+  // Fallback jika tidak ditemukan
+  return `Metode ${methodId}`;
+};
+
+// Mengambil data metode perhitungan
+const fetchCalculationMethods = async () => {
+  try {
+    const response = await axios.get('https://api.aladhan.com/v1/methods');
+    if (response.data.code === 200) {
+      calculationMethods.value = response.data.data;
+      
+      // Tambahkan metode 20 secara manual karena tidak selalu ada di API
+      if (!calculationMethods.value['20']) {
+        calculationMethods.value['20'] = {
+          id: 20,
+          name: "Universal Method untuk Indonesia",
+          params: {
+            Fajr: 18,
+            Isha: 18
+          }
+        };
+      }
+    }
+  } catch (err) {
+    console.error('Gagal memuat metode perhitungan:', err);
+    // Tambahkan default method jika gagal
+    calculationMethods.value = {
+      '20': {
+        id: 20,
+        name: "Universal Method untuk Indonesia",
+        params: {
+          Fajr: 18,
+          Isha: 18
+        }
+      }
+    };
+  }
+};
+
+const isToday = (dateString: string): boolean => {
+  const today = new Date();
+  const checkDate = new Date(dateString);
+  
+  return today.getDate() === checkDate.getDate() &&
+         today.getMonth() === checkDate.getMonth() &&
+         today.getFullYear() === checkDate.getFullYear();
+};
+
+function scrollToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: 'smooth'
+  });
+}
 </script>
 
 <template>
@@ -223,6 +306,15 @@ const formatIndonesianDate = (dateStr: string) => {
             <select id="citySelect" class="form-select" v-model="selectedCity">
               <option v-for="city in indonesianCities" :key="city.name" :value="city">
                 {{ city.name }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="col-md-4">
+            <label for="methodSelect" class="form-label">Metode Perhitungan:</label>
+            <select id="methodSelect" class="form-select" v-model="selectedMethod">
+              <option v-for="(method, key) in calculationMethods" :key="key" :value="method.id">
+                {{ method.name }}
               </option>
             </select>
           </div>
@@ -263,6 +355,10 @@ const formatIndonesianDate = (dateStr: string) => {
           </h5>
         </div>
         <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <small>Perhatian: Waktu shalat yang ditampilkan adalah perkiraan. Mungkin terdapat perbedaan dengan jadwal lokal. Silakan verifikasi dengan jadwal resmi setempat.</small>
+          </div>
           <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
@@ -271,13 +367,12 @@ const formatIndonesianDate = (dateStr: string) => {
                 {{ prayerTimesData.date.hijri.year }}
               </div>
               <div>
-                <strong>Lokasi:</strong> {{ selectedCity.name }}
-                ({{ prayerTimesData.meta.latitude }}, {{ prayerTimesData.meta.longitude }})
+                <strong>Lokasi:</strong> {{ selectedCity.name }}, Indonesia
               </div>
             </div>
             <div class="col-md-6">
               <div class="mb-3">
-                <strong>Metode: </strong> Kementerian Agama Republik Indonesia
+                <strong>Metode:</strong> {{ getMethodName(selectedMethod) }}
               </div>
               <div>
                 <strong>Zona Waktu:</strong> {{ prayerTimesData.meta.timezone }}
@@ -315,6 +410,10 @@ const formatIndonesianDate = (dateStr: string) => {
           </h5>
         </div>
         <div class="card-body">
+          <div class="alert alert-warning">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <small>Perhatian: Waktu shalat yang ditampilkan adalah perkiraan. Mungkin terdapat perbedaan dengan jadwal lokal. Silakan verifikasi dengan jadwal resmi setempat.</small>
+          </div>
           <div class="table-responsive">
             <table class="table table-striped table-hover">
               <thead class="table-success">
@@ -329,18 +428,19 @@ const formatIndonesianDate = (dateStr: string) => {
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="day in monthlyData" :key="day.date.gregorian.date">
+                <tr v-for="day in monthlyData" :key="day.date.gregorian.date" 
+                    :class="{'today-highlight': isToday(day.date.gregorian.date)}">
                   <td>
-                    <strong>{{ day.date.gregorian.day }}/{{ day.date.gregorian.month.number }}</strong>
+                    <strong>{{ day.date.gregorian.day }}/{{ day.date.gregorian.month.en.substring(0, 3) }}</strong>
                     <br>
                     <small class="text-muted">{{ day.date.hijri.day }} {{ day.date.hijri.month.ar }}</small>
                   </td>
-                  <td>{{ day.timings.Fajr.split(' ')[0] }}</td>
-                  <td>{{ day.timings.Sunrise.split(' ')[0] }}</td>
-                  <td>{{ day.timings.Dhuhr.split(' ')[0] }}</td>
-                  <td>{{ day.timings.Asr.split(' ')[0] }}</td>
-                  <td>{{ day.timings.Maghrib.split(' ')[0] }}</td>
-                  <td>{{ day.timings.Isha.split(' ')[0] }}</td>
+                  <td>{{ formatTime(day.timings.Fajr) }}</td>
+                  <td>{{ formatTime(day.timings.Sunrise) }}</td>
+                  <td>{{ formatTime(day.timings.Dhuhr) }}</td>
+                  <td>{{ formatTime(day.timings.Asr) }}</td>
+                  <td>{{ formatTime(day.timings.Maghrib) }}</td>
+                  <td>{{ formatTime(day.timings.Isha) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -351,6 +451,14 @@ const formatIndonesianDate = (dateStr: string) => {
     
     <div v-else class="alert alert-info">
       Tidak ada data jadwal shalat yang tersedia.
+    </div>
+
+    <div class="floating-controls">
+      <div class="btn-group-vertical shadow">
+        <button class="btn btn-primary" @click="scrollToTop" title="Kembali ke Atas">
+          <i class="bi bi-arrow-up"></i>
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -377,5 +485,55 @@ table {
   .table-responsive {
     font-size: 0.8rem;
   }
+}
+
+.today-highlight {
+  background-color: rgba(40, 167, 69, 0.15) !important;
+  font-weight: bold;
+  position: relative;
+}
+
+.today-highlight td {
+  border-top: 2px solid #28a745;
+  border-bottom: 2px solid #28a745;
+}
+
+.today-highlight td:first-child {
+  border-left: 2px solid #28a745;
+}
+
+.today-highlight td:last-child {
+  border-right: 2px solid #28a745;
+}
+
+.floating-controls {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  z-index: 1000;
+}
+
+.floating-controls .btn-group-vertical {
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 0.25rem;
+  transition: opacity 0.3s ease, background-color 0.3s ease;
+  opacity: 0.7;
+}
+
+.floating-controls .btn-group-vertical:hover {
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.floating-controls .btn {
+  border-radius: 0.25rem;
+  background-color: rgba(13, 110, 253, 0.7);
+  border-color: rgba(13, 110, 253, 0.3);
+  transition: all 0.2s ease;
+}
+
+.floating-controls .btn:hover {
+  background-color: rgba(13, 110, 253, 0.9);
+  border-color: rgba(13, 110, 253, 0.5);
 }
 </style>

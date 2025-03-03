@@ -24,6 +24,10 @@
                 Aplikasi ini menggunakan data dari <a href="https://alquran.cloud/api" target="_blank" class="text-success">Quran Cloud API</a>, 
                 yang menyediakan teks Al-Quran, terjemahan, dan audio murottal dari berbagai qari.
               </p>
+              <p>
+                Untuk fitur jadwal sholat, asmaul husna, dan arah kiblat aplikasi ini menggunakan <a href="https://aladhan.com/" target="_blank" class="text-success">AlAdhan API</a>,
+                yang menyediakan waktu sholat akurat untuk berbagai kota di seluruh dunia dengan beberapa metode perhitungan.
+              </p>
             </div>
             
             <div class="mb-4">

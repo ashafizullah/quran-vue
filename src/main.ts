@@ -11,6 +11,8 @@ import BookmarksView from './views/BookmarksView.vue'
 import About from './views/About.vue'
 import Changelog from './views/Changelog.vue'
 import PrayerTimesView from './views/PrayerTimesView.vue'
+import AsmaulHusnaView from './views/AsmaulHusnaView.vue'
+import QiblaView from './views/QiblaView.vue'
 
 const routes = [
   { path: '/', component: Home },
@@ -18,7 +20,9 @@ const routes = [
   { path: '/bookmarks', component: BookmarksView },
   { path: '/about', component: About },
   { path: '/changelog', component: Changelog },
-  { path: '/prayer-times', component: PrayerTimesView }
+  { path: '/prayer-times', component: PrayerTimesView },
+  { path: '/asmaul-husna', component: AsmaulHusnaView },
+  { path: '/qibla', component: QiblaView }
 ]
 
 const router = createRouter({
