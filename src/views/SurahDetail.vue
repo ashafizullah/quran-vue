@@ -47,6 +47,7 @@ const isPlaying = ref(false);
 const selectedReciter = ref('ar.alafasy'); // Default reciter (Mishary Rashid Alafasy)
 const isSurahBookmarked = ref(false);
 const ayahBookmarks = ref<Record<number, boolean>>({});
+const goToAyahNumber = ref<string | number>("1"); 
 
 // Text size control
 const arabicTextSize = ref(4); // Default size (fs-4)
@@ -745,6 +746,71 @@ const isAyahPlaying = (ayahNumber: number) => {
   if (currentAyahIndex.value === null || !surah.value) return false;
   return surah.value.ayahs[currentAyahIndex.value].numberInSurah === ayahNumber;
 };
+
+const goToAyah = () => {
+  if (!surah.value) return;
+  
+  // Validasi input
+  const ayahNum = Number(goToAyahNumber.value);
+  if (isNaN(ayahNum) || ayahNum < 1 || ayahNum > surah.value.numberOfAyahs) {
+    alert(`Masukkan nomor ayat antara 1 - ${surah.value.numberOfAyahs}`);
+    return;
+  }
+  
+  if (viewMode.value === 'list') {
+    // Mode baris: cari dan scroll ke ayat
+    const ayahElement = ayahRefs.value[ayahNum];
+    if (ayahElement) {
+      ayahElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+      // Highlight untuk menarik perhatian
+      ayahElement.classList.add('highlight-ayah');
+      setTimeout(() => {
+        ayahElement.classList.remove('highlight-ayah');
+      }, 3000);
+    }
+  } else {
+    // Mode mushaf/book: cari halaman yang memuat ayat tersebut
+    if (surah.value && ayahsByPage.value) {
+      // Cari halaman mushaf yang berisi ayat ini
+      let targetPage = null;
+      for (const [page, ayahs] of Object.entries(ayahsByPage.value)) {
+        if (ayahs.some(a => a.numberInSurah === ayahNum)) {
+          targetPage = parseInt(page);
+          break;
+        }
+      }
+      
+      if (targetPage) {
+        // Cari indeks halaman dalam availablePages
+        const pageIndex = availablePages.value.indexOf(targetPage);
+        if (pageIndex !== -1) {
+          // Set ke halaman yang benar (pageIndex + 1 karena currentPage dimulai dari 1)
+          currentPage.value = pageIndex + 1;
+          
+          // Scroll ke ayat dalam halaman tersebut setelah render
+          nextTick(() => {
+            const ayahElement = document.getElementById(`ayah-${ayahNum}`);
+            if (ayahElement) {
+              ayahElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+              });
+              
+              // Highlight untuk menarik perhatian
+              ayahElement.classList.add('highlight-ayah');
+              setTimeout(() => {
+                ayahElement.classList.remove('highlight-ayah');
+              }, 3000);
+            }
+          });
+        }
+      }
+    }
+  }
+};
 </script>
 
 <template>
@@ -833,6 +899,27 @@ const isAyahPlaying = (ayahNumber: number) => {
                   {{ reciter.name }}
                 </option>
               </select>
+            </div>
+
+            <div class="form-group mb-3">
+              <label class="form-label">Cari Ayat:</label>
+              <div class="input-group">
+                <input 
+                  type="number" 
+                  class="form-control" 
+                  v-model="goToAyahNumber" 
+                  min="1" 
+                  :max="surah?.numberOfAyahs || 1" 
+                  placeholder="Nomor ayat..."
+                  @keyup.enter="goToAyah"
+                />
+                <button class="btn btn-success" @click="goToAyah">
+                  <i class="bi bi-search"></i> Cari
+                </button>
+              </div>
+              <small class="form-text text-muted">
+                Masukkan nomor ayat (1-{{ surah.numberOfAyahs }})
+              </small>
             </div>
             
             <div v-if="currentAyahIndex !== null" class="current-playing alert alert-success">
@@ -1383,5 +1470,25 @@ const isAyahPlaying = (ayahNumber: number) => {
   opacity: 0.3;
   border-top-left-radius: 5px;
   border-bottom-left-radius: 5px;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+
+.highlight-ayah {
+  animation: highlight-pulse 3s ease;
+}
+
+@keyframes highlight-pulse {
+  0% { background-color: rgba(40, 167, 69, 0.1); }
+  50% { background-color: rgba(40, 167, 69, 0.3); }
+  100% { background-color: rgba(40, 167, 69, 0); }
 }
 </style>
