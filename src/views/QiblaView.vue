@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import axios from 'axios';
 
 interface QiblaData {
@@ -15,6 +15,10 @@ const locationStatus = ref('');
 const userLocation = ref<{ latitude: number; longitude: number } | null>(null);
 const showCompass = ref(false);
 const compassRotation = ref(0);
+const deviceHeading = ref(0);
+const isLiveCompass = ref(false);
+const hasOrientationPermission = ref<boolean | null>(null);
+const orientationSupported = ref(false);
 
 // Load qibla direction based on coordinates
 const fetchQiblaDirection = async (latitude: number, longitude: number) => {
@@ -155,9 +159,99 @@ const selectCity = (city: { name: string; latitude: number; longitude: number })
   fetchQiblaDirection(city.latitude, city.longitude);
 };
 
+// Function to handle device orientation data
+const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
+  // alpha gives compass direction (0-360)
+  if (event.alpha !== null) {
+    deviceHeading.value = event.alpha;
+    // If we don't have permission, this event firing means we got it
+    if (hasOrientationPermission.value === null) {
+      hasOrientationPermission.value = true;
+    }
+  }
+};
+
+// Function to start the live compass
+const startLiveCompass = () => {
+  if (!orientationSupported.value) {
+    error.value = 'Maaf, browser Anda tidak mendukung sensor orientasi perangkat.';
+    return;
+  }
+  
+  // Modern browsers might require permission for device orientation
+  if (typeof DeviceOrientationEvent !== 'undefined' && 
+      typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
+    // iOS 13+ requires permission
+    (DeviceOrientationEvent as any).requestPermission()
+      .then((response: string) => {
+        if (response === 'granted') {
+          isLiveCompass.value = true;
+          hasOrientationPermission.value = true;
+          window.addEventListener('deviceorientation', handleDeviceOrientation);
+        } else {
+          hasOrientationPermission.value = false;
+          error.value = 'Izin untuk mengakses sensor orientasi perangkat ditolak.';
+        }
+      })
+      .catch((e: Error) => {
+        console.error(e);
+        hasOrientationPermission.value = false;
+        error.value = 'Terjadi kesalahan saat meminta izin sensor orientasi.';
+      });
+  } else {
+    // Browsers that don't need permission or don't support the permission API
+    isLiveCompass.value = true;
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+  }
+};
+
+// Function to stop the live compass
+const stopLiveCompass = () => {
+  isLiveCompass.value = false;
+  window.removeEventListener('deviceorientation', handleDeviceOrientation);
+};
+
+// Toggle live compass on/off
+const toggleLiveCompass = () => {
+  if (isLiveCompass.value) {
+    stopLiveCompass();
+  } else {
+    startLiveCompass();
+  }
+};
+
+// Calculate the combined rotation (qibla direction + device heading)
+const calculatedRotation = () => {
+  if (qiblaData.value) {
+    if (isLiveCompass.value) {
+      // For live compass, we rotate against the device heading
+      // when device points north, heading is 0
+      // when device points east, heading is 90
+      // We need to subtract the heading because we're counter-rotating
+      return qiblaData.value.direction - deviceHeading.value;
+    } else {
+      // For static compass, just use the qibla direction
+      return qiblaData.value.direction;
+    }
+  }
+  return 0;
+};
+
 // Auto-detect location when component mounts
 onMounted(() => {
   getUserLocation();
+  
+  // Check if device orientation is supported
+  if (window.DeviceOrientationEvent) {
+    orientationSupported.value = true;
+  }
+});
+
+// Clean up event listeners when component unmounts
+onBeforeUnmount(() => {
+  if (isLiveCompass.value) {
+    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+  }
 });
 </script>
 
@@ -265,7 +359,7 @@ onMounted(() => {
             <div class="card-body text-center">
               <div v-if="showCompass" class="compass-container mb-4">
                 <div class="compass">
-                  <div class="compass-inner" :style="`transform: rotate(${compassRotation}deg)`">
+                  <div class="compass-inner" :style="`transform: rotate(${calculatedRotation()}deg)`">
                     <div class="north-indicator">N</div>
                     <div class="needle"></div>
                     <div class="kaaba-indicator">
@@ -273,10 +367,36 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
+                
+                <div class="live-compass-toggle mt-3">
+                  <button @click="toggleLiveCompass" class="btn" :class="isLiveCompass ? 'btn-success' : 'btn-outline-success'">
+                    <i class="bi" :class="isLiveCompass ? 'bi-compass-fill' : 'bi-compass'"></i>
+                    {{ isLiveCompass ? 'Kompas Live Aktif' : 'Aktifkan Kompas Live' }}
+                  </button>
+                  <div v-if="orientationSupported && !hasOrientationPermission && hasOrientationPermission !== null" class="alert alert-warning mt-2">
+                    Izin sensor orientasi ditolak. Kompas live tidak dapat diaktifkan.
+                  </div>
+                  <div v-if="!orientationSupported" class="alert alert-warning mt-2">
+                    Perangkat atau browser Anda tidak mendukung sensor orientasi.
+                  </div>
+                  <div v-if="isLiveCompass" class="alert alert-info mt-2">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Arahkan perangkat Anda secara horizontal dan putar hingga panah menunjuk ke depan untuk menemukan arah kiblat.
+                  </div>
+                </div>
               </div>
               
               <h2 class="mb-3">{{ qiblaData.direction.toFixed(2) }}°</h2>
               <p class="mb-0">Arahkan ke {{ getDirection(qiblaData.direction) }}</p>
+              
+              <div v-if="isLiveCompass" class="mt-3">
+                <div class="d-flex justify-content-center align-items-center">
+                  <div class="compass-info">
+                    <span class="badge bg-primary me-2">Heading: {{ Math.round(deviceHeading) }}°</span>
+                    <span class="badge bg-success">Aktif</span>
+                  </div>
+                </div>
+              </div>
               
               <div class="mt-4">
                 <p class="mb-1"><strong>Lokasi Anda:</strong></p>
@@ -325,6 +445,19 @@ function getDirection(degrees: number): string {
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
 
+.live-compass-toggle {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.compass-info {
+  display: inline-block;
+  padding: 8px 15px;
+  border-radius: 20px;
+  background-color: rgba(40, 167, 69, 0.1);
+  margin-top: 10px;
+}
+
 .compass-inner {
   width: 100%;
   height: 100%;
@@ -333,7 +466,7 @@ function getDirection(degrees: number): string {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: transform 1s ease;
+  transition: transform 0.2s ease;
 }
 
 .north-indicator {

@@ -64,17 +64,17 @@ onBeforeUnmount(() => {
               </router-link>
             </li>
             <li class="nav-item">
-              <router-link class="nav-link" to="/prayer-times">
+              <router-link class="nav-link" to="/prayer-times" @click="closeNavbar">
                 <i class="bi bi-clock me-1"></i>Jadwal Shalat
               </router-link>
             </li>
             <li class="nav-item">
-              <router-link class="nav-link" to="/asmaul-husna">
+              <router-link class="nav-link" to="/asmaul-husna" @click="closeNavbar">
                 <i class="bi bi-stars me-1"></i>Asmaul Husna
               </router-link>
             </li>
             <li class="nav-item">
-              <router-link class="nav-link" to="/qibla">
+              <router-link class="nav-link" to="/qibla" @click="closeNavbar">
                 <i class="bi bi-compass me-1"></i>Arah Kiblat
               </router-link>
             </li>
