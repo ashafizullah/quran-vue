@@ -222,7 +222,9 @@ const toggleLiveHeading = () => {
 const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
   // alpha memberi arah kompas (0-360)
   if (event.alpha !== null) {
-    deviceHeading.value = event.alpha;
+    // Koreksi arah orientasi dengan membalik 360 derajat
+    // 360 - alpha akan membalik orientasi
+    deviceHeading.value = (360 - event.alpha) % 360;
     
     // Cek apakah heading mendekati arah kiblat
     if (qiblaData.value) {
