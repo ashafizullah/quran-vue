@@ -224,13 +224,9 @@ const toggleLiveCompass = () => {
 const calculatedRotation = () => {
   if (qiblaData.value) {
     if (isLiveCompass.value) {
-      // For live compass, we rotate against the device heading
-      // when device points north, heading is 0
-      // when device points east, heading is 90
-      // We need to subtract the heading because we're counter-rotating
+      // Untuk kompas live, arah kiblat - heading perangkat = arah relatif kiblat
       return qiblaData.value.direction - deviceHeading.value;
     } else {
-      // For static compass, just use the qibla direction
       return qiblaData.value.direction;
     }
   }
